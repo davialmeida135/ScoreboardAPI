@@ -6,8 +6,7 @@ from app.models import User,Match,MatchMoment,MatchSet
 from flask_jwt_extended import JWTManager,create_access_token, get_jwt_identity,create_refresh_token,jwt_required
 app_bp = Blueprint('app', __name__)
 
-
-
+#NEW USER
 @app_bp.route('/users/new', methods=['POST'])
 def create_user():
     data = request.get_json()
@@ -16,6 +15,7 @@ def create_user():
     db.session.commit()
     return jsonify({'message': 'User created successfully'}), 201
 
+#AUTHENTICATE USER//SEND ACCESS TOKEN
 @app_bp.route('/auth', methods=['POST'])
 def authenticate_user():
     data = request.get_json()
@@ -30,13 +30,15 @@ def authenticate_user():
      
     return jsonify({'message': 'Invalid credentials'}), 401
 
+#REFRESH ACCESS TOKEN
 @app_bp.route('/token/refresh', methods=['POST'])
 @jwt_required(refresh=True)  # Protects the route, ensuring only valid refresh tokens can access it
 def refresh():
     current_user = get_jwt_identity()
     new_token = create_access_token(identity=current_user)
     return jsonify({'access_token': new_token}), 200
-    
+
+#GET USER MATCHES
 @app_bp.route('/user/', methods=['GET'])
 @jwt_required()
 def get_user_matches():
@@ -45,6 +47,7 @@ def get_user_matches():
     user_matches = Match.query.filter(Match.ownerUsername == current_user_username).all()
     return [match.to_json() for match in user_matches]
 
+#CREATE MATCH
 @app_bp.route('/matches/new', methods=['POST'])
 def create_match():
     data = request.get_json()
@@ -55,6 +58,7 @@ def create_match():
 
     return jsonify({'message': 'Match created successfully'}), 201
 
+#UPDATE MATCH
 @app_bp.route('/matches/update', methods=['POST'])
 def update_match():
     data = request.get_json()
@@ -64,7 +68,7 @@ def update_match():
     if not match:
         return jsonify({"error": "Match not found"}), 404
 
-    print('oi1')
+    #print('oi1')
     # Update match attributes
     match.title = data.get('title', match.title)
     match.player1 = data.get('player1', match.player1)
@@ -74,7 +78,7 @@ def update_match():
     # Update moments and sets if provided
     if 'moments' in data:
         moment_data = data['moments'][0]
-        print('oi2')
+        #print('oi2')
         if match.moments:
             moment = match.moments[0]
             moment.current_game_p1 = moment_data.get('current_game_p1', moment.current_game_p1)
@@ -86,7 +90,7 @@ def update_match():
 
             # Update sets if provided
             if 'sets' in moment_data:
-                print('oi3')
+                #print('oi3')
                 for i, set_data in enumerate(moment_data['sets']):
                     if i < len(moment.sets):
                         match_set = moment.sets[i]
@@ -100,6 +104,7 @@ def update_match():
     db.session.commit()
     return jsonify({'message': 'Match updated successfully'}), 200
 
+#GET ALL MATCHES
 @app_bp.route('/matches', methods=['GET'])
 def get_matches():
     print("matches")
@@ -107,6 +112,7 @@ def get_matches():
     #print(matches)
     return [match.to_json() for match in matches]
 
+#GET SPECIFIC MATCH
 @app_bp.route('/matches/<int:match_id>', methods=['GET'])
 def get_match(match_id):
     match = Match.query.get(match_id)
