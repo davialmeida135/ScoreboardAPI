@@ -17,14 +17,14 @@ class Match(db.Model):
     moments = db.relationship('MatchMoment', backref='match', cascade='all, delete-orphan')
     
     def to_json(self):
-        return {
+        return json.dumps({
             'idMatch': self.idMatch,
             'title': self.title,
             'player1': self.player1,
             'player2': self.player2,
             'ownerUsername': self.ownerUsername,
             'moments': [moment.to_json() for moment in self.moments]
-        }
+        })
     
     @classmethod
     def from_dict(cls,data):
@@ -35,6 +35,8 @@ class Match(db.Model):
         match.player2 = data['player2']
         match.ownerUsername = data['ownerUsername']
         if 'moments' in data:
+            print("moments in data")
+            print(data['moments'])
             match.moments = [MatchMoment.from_dict(moment_data) for moment_data in data['moments']]
         return match
 
@@ -83,7 +85,8 @@ class MatchMoment(db.Model):
         moment.match_score_p1 = data['match_score_p1']
         moment.match_score_p2 = data['match_score_p2']
 
-        moment.sets = MatchSet.from_dict(data['sets'])
+        moment.sets = [MatchSet.from_dict(set_data) for set_data in data['sets']]
+        return moment
 
 
 class MatchSet(db.Model):

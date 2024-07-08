@@ -1,4 +1,5 @@
 from flask import Flask
+from flask_jwt_extended import JWTManager
 from flask_sqlalchemy import SQLAlchemy
 import secrets
 
@@ -13,8 +14,9 @@ def create_app():
     app.config.from_object('config')
     app.secret_key = secrets.token_hex(16)
     app.config.from_prefixed_env()
-    from .routes import match_bp
-    app.register_blueprint(match_bp)
+    from .routes import app_bp
+    app.register_blueprint(app_bp)
+    jwt = JWTManager(app)
     db.init_app(app)
 
     return app
