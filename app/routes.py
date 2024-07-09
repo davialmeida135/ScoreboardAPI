@@ -10,22 +10,35 @@ app_bp = Blueprint('app', __name__)
 @app_bp.route('/users/new', methods=['POST'])
 def create_user():
     data = request.get_json()
+    #Password has to be bcrypt hashed
     new_user = User(username=data['username'], password=data['password'])
     db.session.add(new_user)
     db.session.commit()
     return jsonify({'message': 'User created successfully'}), 201
 
+#DELETE USER
+@app_bp.route('/users/delete', methods=['POST'])
+@jwt_required()
+def delete_user():
+    data = request.get_json()
+    user = User.query.filter(User.username == data['username']).first()
+    if user and bcrypt.checkpw(data['password'].encode('utf-8'),user.password.encode('utf-8')):
+        db.session.delete(user)
+        db.session.commit()
+        return jsonify({'message': 'User deleted successfully'}), 200
+    return jsonify({'message': 'Invalid credentials'}), 401
+
 #AUTHENTICATE USER//SEND ACCESS TOKEN
 @app_bp.route('/auth', methods=['POST'])
 def authenticate_user():
     data = request.get_json()
-    if 'username' in data:
+    if 'username' in data and 'password' in data:
         user = User.query.filter(User.username == data['username']).first()
-        #if user and bcrypt.checkpw(data['password'],user.password):
-        aexpires = timedelta(hours=1)
-        rexpires = timedelta(days=360)
-        access_token = create_access_token(identity=user.username,expires_delta=aexpires)
-        refresh_token = create_refresh_token(identity=user.username,expires_delta=rexpires)
+        if user and bcrypt.checkpw(data['password'].encode('utf-8'),user.password.encode('utf-8')):
+            aexpires = timedelta(hours=1)
+            rexpires = timedelta(days=360)
+            access_token = create_access_token(identity=user.username,expires_delta=aexpires)
+            refresh_token = create_refresh_token(identity=user.username,expires_delta=rexpires)
         return jsonify(access_token=access_token,refresh_token=refresh_token), 200   
      
     return jsonify({'message': 'Invalid credentials'}), 401
@@ -43,12 +56,12 @@ def refresh():
 @jwt_required()
 def get_user_matches():
     current_user_username = get_jwt_identity()
-
     user_matches = Match.query.filter(Match.ownerUsername == current_user_username).all()
     return [match.to_json() for match in user_matches]
 
 #CREATE MATCH
 @app_bp.route('/matches/new', methods=['POST'])
+@jwt_required()
 def create_match():
     data = request.get_json()
     match = Match.from_dict(data)
@@ -60,6 +73,7 @@ def create_match():
 
 #UPDATE MATCH
 @app_bp.route('/matches/update', methods=['POST'])
+@jwt_required()
 def update_match():
     data = request.get_json()
     # Retrieve the match by ID
@@ -68,7 +82,6 @@ def update_match():
     if not match:
         return jsonify({"error": "Match not found"}), 404
 
-    #print('oi1')
     # Update match attributes
     match.title = data.get('title', match.title)
     match.player1 = data.get('player1', match.player1)
@@ -103,14 +116,6 @@ def update_match():
     # Commit the changes
     db.session.commit()
     return jsonify({'message': 'Match updated successfully'}), 200
-
-#GET ALL MATCHES
-@app_bp.route('/matches', methods=['GET'])
-def get_matches():
-    print("matches")
-    matches = Match.query.all()
-    #print(matches)
-    return [match.to_json() for match in matches]
 
 #GET SPECIFIC MATCH
 @app_bp.route('/matches/<int:match_id>', methods=['GET'])
