@@ -1,5 +1,7 @@
 import bcrypt
 import re
+import json
+import time
 from datetime import timedelta
 from .database import db
 from flask import Blueprint, jsonify, request
@@ -43,6 +45,7 @@ def delete_user():
 #AUTHENTICATE USER//SEND ACCESS TOKEN
 @app_bp.route('/auth', methods=['POST'])
 def authenticate_user():
+
     data = request.get_json()
     if 'username' in data and 'password' in data:
         user = User.query.filter(User.username == data['username']).first()
@@ -64,7 +67,7 @@ def refresh():
     return jsonify({'access_token': new_token}), 200
 
 #GET USER MATCHES
-@app_bp.route('/user/', methods=['GET'])
+@app_bp.route('/user/matches', methods=['GET'])
 @jwt_required()
 def get_user_matches():
     current_user_username = get_jwt_identity()
@@ -88,6 +91,7 @@ def create_match():
 @jwt_required()
 def update_match():
     data = request.get_json()
+    data = json.loads(data)
     # Retrieve the match by ID
     match = Match.query.get(data['idMatch'])
     print(match.to_json())
