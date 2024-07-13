@@ -11,6 +11,9 @@ app_bp = Blueprint('app', __name__)
 def create_user():
     data = request.get_json()
     #Password has to be bcrypt hashed
+    existing_user = User.query.filter_by(username=data['username']).first()
+    if existing_user:
+        return jsonify({'error': 'Username already exists'}), 409
     new_user = User(username=data['username'], password=data['password'])
     db.session.add(new_user)
     db.session.commit()
