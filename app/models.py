@@ -41,8 +41,9 @@ class Match(db.Model):
         return match
 
     @classmethod
-    def from_json(cls,json_str):
+    def from_json(cls,json_str,current_user):
         data = json.loads(json_str)
+        data['ownerUsername'] = current_user
         return Match.from_dict(data)
     
 class MatchMoment(db.Model):
