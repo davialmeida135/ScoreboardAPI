@@ -1,10 +1,14 @@
 import bcrypt
+import re
 from datetime import timedelta
 from .database import db
 from flask import Blueprint, jsonify, request
 from app.models import User,Match,MatchMoment,MatchSet
 from flask_jwt_extended import JWTManager,create_access_token, get_jwt_identity,create_refresh_token,jwt_required
 app_bp = Blueprint('app', __name__)
+def is_bcrypt_hash(string):
+    bcrypt_regex = re.compile(r'^\$2[abxy]\$\d{2}\$[./A-Za-z0-9]{53}$')
+    return bool(bcrypt_regex.match(string))
 
 #NEW USER
 @app_bp.route('/users/new', methods=['POST'])
@@ -14,6 +18,8 @@ def create_user():
     existing_user = User.query.filter_by(username=data['username']).first()
     if existing_user:
         return jsonify({'error': 'Username already exists'}), 409
+    if not is_bcrypt_hash(data['password']):
+        return jsonify({'error': 'Password must be hashed'}), 400
     new_user = User(username=data['username'], password=data['password'])
     db.session.add(new_user)
     db.session.commit()
@@ -25,11 +31,14 @@ def create_user():
 def delete_user():
     data = request.get_json()
     user = User.query.filter(User.username == data['username']).first()
-    if user and bcrypt.checkpw(data['password'].encode('utf-8'),user.password.encode('utf-8')):
-        db.session.delete(user)
-        db.session.commit()
-        return jsonify({'message': 'User deleted successfully'}), 200
-    return jsonify({'message': 'Invalid credentials'}), 401
+    try:
+        if user and bcrypt.checkpw(data['password'].encode('utf-8'),user.password.encode('utf-8')):
+            db.session.delete(user)
+            db.session.commit()
+            return jsonify({'message': 'User deleted successfully'}), 200
+        return jsonify({'message': 'Invalid credentials'}), 401
+    except Exception as e:
+        return jsonify({'message': {str(e)}}), 401
 
 #AUTHENTICATE USER//SEND ACCESS TOKEN
 @app_bp.route('/auth', methods=['POST'])
@@ -42,7 +51,7 @@ def authenticate_user():
             rexpires = timedelta(days=360)
             access_token = create_access_token(identity=user.username,expires_delta=aexpires)
             refresh_token = create_refresh_token(identity=user.username,expires_delta=rexpires)
-        return jsonify(access_token=access_token,refresh_token=refresh_token), 200   
+            return jsonify(access_token=access_token,refresh_token=refresh_token), 200   
      
     return jsonify({'message': 'Invalid credentials'}), 401
 
