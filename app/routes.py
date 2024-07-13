@@ -54,7 +54,6 @@ def authenticate_user():
             rexpires = timedelta(days=360)
             access_token = create_access_token(identity=user.username,expires_delta=aexpires)
             refresh_token = create_refresh_token(identity=user.username,expires_delta=rexpires)
-            return jsonify(access_token=access_token,refresh_token=refresh_token), 200   
             return jsonify(access_token=access_token,refresh_token=refresh_token), 200       
 
     return jsonify({'message': 'Invalid credentials'}), 401
@@ -80,7 +79,7 @@ def get_user_matches():
 @jwt_required()
 def create_match():
     data = request.get_json()
-    match = Match.from_dict(data)
+    current_user = get_jwt_identity()
     match = Match.from_json(data,current_user)
     db.session.add(match)
     #db.session.add(match)
