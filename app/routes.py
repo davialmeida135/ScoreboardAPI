@@ -1,47 +1,47 @@
-import bcrypt
+from passlib.hash import argon2
 import re
 import json
-import time
 from datetime import timedelta
 from .database import db
 from flask import Blueprint, jsonify, request
 from app.models import User,Match,MatchMoment,MatchSet
 from flask_jwt_extended import JWTManager,create_access_token, get_jwt_identity,create_refresh_token,jwt_required
-app_bp = Blueprint('app', __name__)
-def is_bcrypt_hash(string):
-    bcrypt_regex = re.compile(r'^\$2[abxy]\$\d{2}\$[./A-Za-z0-9]{53}$')
-    return bool(bcrypt_regex.match(string))
 
-#NEW USER
+app_bp = Blueprint('app', __name__)
+def is_argon2_hash(string):
+    argon2_regex = re.compile(r'^\$argon2[a-z]*\$v=\d+\$m=\d+,t=\d+,p=\d+\$[A-Za-z0-9+/]+={0,2}\$[A-Za-z0-9+/]+={0,2}$')
+    return bool(argon2_regex.match(string))
+
+# NEW USER
 @app_bp.route('/users/new', methods=['POST'])
 def create_user():
     data = request.get_json()
-    #Password has to be bcrypt hashed
+    # Password has to be argon2 hashed
     existing_user = User.query.filter_by(username=data['username']).first()
     if existing_user:
         return jsonify({'error': 'Username already exists'}), 409
-    if not is_bcrypt_hash(data['password']):
+    if not is_argon2_hash(data['password']):
         return jsonify({'error': 'Password must be hashed'}), 400
     new_user = User(username=data['username'], password=data['password'])
     db.session.add(new_user)
     db.session.commit()
     return jsonify({'message': 'User created successfully'}), 201
 
-#DELETE USER
+# DELETE USER
 @app_bp.route('/users/delete', methods=['POST'])
 @jwt_required()
 def delete_user():
     data = request.get_json()
     user = User.query.filter(User.username == data['username']).first()
     try:
-        if user and bcrypt.checkpw(data['password'].encode('utf-8'),user.password.encode('utf-8')):
+        if user and argon2.verify(data['password'], user.password):
             db.session.delete(user)
             db.session.commit()
             return jsonify({'message': 'User deleted successfully'}), 200
         return jsonify({'message': 'Invalid credentials'}), 401
     except Exception as e:
-        return jsonify({'message': {str(e)}}), 401
-
+        return jsonify({'message': str(e)}), 401
+    
 #AUTHENTICATE USER//SEND ACCESS TOKEN
 @app_bp.route('/auth', methods=['POST'])
 def authenticate_user():
@@ -49,7 +49,7 @@ def authenticate_user():
     data = request.get_json()
     if 'username' in data and 'password' in data:
         user = User.query.filter(User.username == data['username']).first()
-        if user and bcrypt.checkpw(data['password'].encode('utf-8'),user.password.encode('utf-8')):
+        if user and argon2.verify(data['password'], user.password):
             aexpires = timedelta(hours=1)
             rexpires = timedelta(days=360)
             access_token = create_access_token(identity=user.username,expires_delta=aexpires)
