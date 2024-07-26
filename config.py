@@ -10,5 +10,6 @@ mysql_password = os.getenv('MYSQL_PASSWORD')
 mysql_host = os.getenv('MYSQL_HOST')
 mysql_port = os.getenv('MYSQL_PORT')
 mysql_db = os.getenv('MYSQL_DB')
+jwt_sec = os.getenv('JWT_SECRET_KEY')
 SQLALCHEMY_DATABASE_URI = f'mysql+pymysql://{mysql_user}:{mysql_password}@{mysql_host}:{mysql_port}/{mysql_db}'
 SQLALCHEMY_TRACK_MODIFICATIONS = False
