@@ -2,13 +2,15 @@ from flask import Flask
 from flask_jwt_extended import JWTManager
 from flask_sqlalchemy import SQLAlchemy
 import secrets
+from flask_socketio import SocketIO, emit
 
 
 
 from flask import Flask
 from .database import db
 import secrets
-
+socketio = SocketIO()
+jwt = JWTManager()
 def create_app():
     app = Flask(__name__)
     app.config.from_object('config')
@@ -16,7 +18,8 @@ def create_app():
     app.config.from_prefixed_env()
     from .routes import app_bp
     app.register_blueprint(app_bp)
-    jwt = JWTManager(app)
+    jwt.init_app(app)
+    socketio.init_app(app) 
     db.init_app(app)
 
     return app

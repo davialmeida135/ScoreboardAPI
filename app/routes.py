@@ -6,6 +6,8 @@ from .database import db
 from flask import Blueprint, jsonify, request
 from app.models import User,Match,MatchMoment,MatchSet
 from flask_jwt_extended import JWTManager,create_access_token, get_jwt_identity,create_refresh_token,jwt_required
+from . import socketio
+from flask_socketio import emit
 
 app_bp = Blueprint('app', __name__)
 def is_pbkdf2_sha256_hash(string):
@@ -50,8 +52,8 @@ def authenticate_user():
     if 'username' in data and 'password' in data:
         user = User.query.filter(User.username == data['username']).first()
         if user and pbkdf2_sha256.verify(data['password'], user.password):
-            aexpires = timedelta(hours=1)
-            rexpires = timedelta(days=360)
+            aexpires = timedelta(hours=1.0)
+            rexpires = timedelta(days=360.0)
             access_token = create_access_token(identity=user.username,expires_delta=aexpires)
             refresh_token = create_refresh_token(identity=user.username,expires_delta=rexpires)
             return jsonify(access_token=access_token,refresh_token=refresh_token), 200       
@@ -93,8 +95,9 @@ def create_match():
 def update_match():
     data = request.get_json()
     data = json.loads(data)
+    id = data['idMatch']
     # Retrieve the match by ID
-    match = Match.query.get(data['idMatch'])
+    match = Match.query.get(id)
     print(match.to_json())
     if not match:
         return jsonify({"error": "Match not found"}), 404
@@ -132,6 +135,8 @@ def update_match():
 
     # Commit the changes
     db.session.commit()
+
+    socketio.emit(f'match_update_{id}')
     return jsonify({'message': 'Match updated successfully'}), 200
 
 #GET SPECIFIC MATCH
