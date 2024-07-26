@@ -4,13 +4,13 @@ from flask_sqlalchemy import SQLAlchemy
 import secrets
 from flask_socketio import SocketIO, emit
 from config import jwt_sec
-
+from flask_sock import Sock
 
 
 from flask import Flask
 from .database import db
 import secrets
-socketio = SocketIO()
+sock = Sock() 
 jwt = JWTManager()
 def create_app():
     app = Flask(__name__)
@@ -21,7 +21,7 @@ def create_app():
     from .routes import app_bp
     app.register_blueprint(app_bp)
     jwt.init_app(app)
-    socketio.init_app(app) 
+    sock.init_app(app) 
     db.init_app(app)
 
     return app

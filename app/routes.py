@@ -6,7 +6,7 @@ from .database import db
 from flask import Blueprint, jsonify, request
 from app.models import User,Match,MatchMoment,MatchSet
 from flask_jwt_extended import JWTManager,create_access_token, get_jwt_identity,create_refresh_token,jwt_required
-from . import socketio
+from . import sock
 from flask_socketio import emit
 
 app_bp = Blueprint('app', __name__)
@@ -89,6 +89,17 @@ def create_match():
 
     return jsonify({'message': 'Match created successfully'}), 201
 
+clients = []
+
+@sock.route('/ws')
+def websocket(ws):
+    clients.append(ws)
+    while True:
+        data = ws.receive()
+        if not data:
+            break
+    clients.remove(ws)
+
 #UPDATE MATCH
 @app_bp.route('/matches/update', methods=['POST'])
 @jwt_required()
@@ -136,7 +147,15 @@ def update_match():
     # Commit the changes
     db.session.commit()
 
-    socketio.emit(f'match_update_{id}')
+    # Broadcast the update to all connected WebSocket clients
+    for client in clients:
+        try:
+            client.send(json.dumps({
+                'topic': f'match_update_{id}',
+                'data': match.to_json()  # Convert the match to JSON
+            }))
+        except:
+            clients.remove(client)
     return jsonify({'message': 'Match updated successfully'}), 200
 
 #GET SPECIFIC MATCH

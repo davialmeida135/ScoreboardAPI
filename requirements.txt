@@ -7,4 +7,4 @@ flask_jwt_extended
 gunicorn
 passlib
 argon2-cffi
-flask-socketio
+flask-sock
