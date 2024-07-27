@@ -7,7 +7,6 @@ from flask import Blueprint, jsonify, request
 from app.models import User,Match,MatchMoment,MatchSet
 from flask_jwt_extended import JWTManager,create_access_token, get_jwt_identity,create_refresh_token,jwt_required
 from . import sock
-from flask_socketio import emit
 
 app_bp = Blueprint('app', __name__)
 def is_pbkdf2_sha256_hash(string):
@@ -94,11 +93,17 @@ clients = []
 @sock.route('/ws')
 def websocket(ws):
     clients.append(ws)
-    while True:
-        data = ws.receive()
-        if not data:
-            break
-    clients.remove(ws)
+    try:
+        while True:
+            data = ws.receive()
+            if data is None:
+                break
+            # Broadcast the received data to all other clients
+            for client in clients:
+                if client != ws:
+                    client.send(data)
+    finally:
+        clients.remove(ws)
 
 #UPDATE MATCH
 @app_bp.route('/matches/update', methods=['POST'])
@@ -154,7 +159,8 @@ def update_match():
                 'topic': f'match_update_{id}',
                 'data': match.to_json()  # Convert the match to JSON
             }))
-        except:
+        except Exception as e:
+            print(f"Error sending message: {e}")
             clients.remove(client)
     return jsonify({'message': 'Match updated successfully'}), 200
 
