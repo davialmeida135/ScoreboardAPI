@@ -179,6 +179,8 @@ def update_match():
 
     db.session.commit()
 
+    # Broadcast the updated match to all clients
+    logger.info('Clients: ',clients)
     for client in clients:
         try:
             client.send(json.dumps({
