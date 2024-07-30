@@ -181,7 +181,8 @@ def update_match():
     logger.info(f'Match {id} updated successfully!')
 
     # Broadcast the updated match to all clients
-    logger.info('Clients: ',clients)
+    logger.info('Clients: %s', clients)
+
     for client in clients:
         try:
             client.send(json.dumps({
