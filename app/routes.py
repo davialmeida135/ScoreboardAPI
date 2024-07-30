@@ -120,7 +120,7 @@ clients = []
 @sock.route('/ws')
 def websocket(ws):
     clients.append(ws)
-    logger.info("WebSocket client connected")
+    logger.info(f"WebSocket client {ws} connected")
     try:
         while True:
             data = ws.receive()
@@ -133,7 +133,7 @@ def websocket(ws):
                     client.send(data)
     finally:
         clients.remove(ws)
-        logger.info("WebSocket client disconnected")
+        logger.info(f"WebSocket client {ws} disconnected")
 
 # UPDATE MATCH
 @app_bp.route('/matches/update', methods=['POST'])
