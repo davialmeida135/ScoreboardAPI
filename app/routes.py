@@ -178,6 +178,7 @@ def update_match():
                         moment.sets.append(new_set)
 
     db.session.commit()
+    logger.info(f'Match {id} updated successfully!')
 
     # Broadcast the updated match to all clients
     logger.info('Clients: ',clients)
