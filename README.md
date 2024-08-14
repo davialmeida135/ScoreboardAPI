@@ -1,1 +1,3 @@
-API para um app de placar de tênis
+# ScoreboardAPI
+
+API de um app com placar de tênis interativo e possibilidade de salvar partidas por usuário
